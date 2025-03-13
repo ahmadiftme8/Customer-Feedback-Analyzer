@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read all feedback
+    match /feedback/{document=**} {
+      allow read: if request.auth != null;
+      // Allow users to create feedback only if they're authenticated and the userId matches
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Prevent updates and deletes
+      allow update, delete: if false;
+    }
+  }
+} 

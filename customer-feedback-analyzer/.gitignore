@@ -1,0 +1,14 @@
+# Environment variables
+.env
+
+# Firebase cache and config
+.firebase/
+.firebaserc
+
+# IDE files
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db 

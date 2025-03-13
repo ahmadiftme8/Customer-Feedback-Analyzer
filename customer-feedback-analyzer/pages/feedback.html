@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Feedback - Customer Feedback Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-xl font-bold">Customer Feedback Analyzer</h1>
+                <div class="flex space-x-4">
+                    <a href="dashboard.html" class="text-gray-700 hover:text-blue-500">Dashboard</a>
+                    <button id="logoutButton" class="text-gray-700 hover:text-blue-500">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-2xl font-bold mb-6">Submit Your Feedback</h2>
+        <form id="feedbackForm">
+            <div class="mb-4">
+                <label for="feedback" class="block text-gray-700 text-sm font-bold mb-2">
+                    Your Feedback (max 500 characters)
+                </label>
+                <textarea
+                    id="feedback"
+                    maxlength="500"
+                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                    rows="4"
+                    required
+                ></textarea>
+                <div class="text-sm text-gray-500 mt-1">
+                    <span id="charCount">0</span>/500 characters
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Rating</label>
+                <div class="flex space-x-4">
+                    <input type="radio" id="rating1" name="rating" value="1" required>
+                    <label for="rating1">1</label>
+                    <input type="radio" id="rating2" name="rating" value="2">
+                    <label for="rating2">2</label>
+                    <input type="radio" id="rating3" name="rating" value="3">
+                    <label for="rating3">3</label>
+                    <input type="radio" id="rating4" name="rating" value="4">
+                    <label for="rating4">4</label>
+                    <input type="radio" id="rating5" name="rating" value="5">
+                    <label for="rating5">5</label>
+                </div>
+            </div>
+
+            <button
+                type="submit"
+                class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+                Submit Feedback
+            </button>
+        </form>
+        <p id="successMessage" class="text-green-500 text-center mt-4 hidden">
+            Thank you for your feedback!
+        </p>
+        <p id="errorMessage" class="text-red-500 text-center mt-4 hidden"></p>
+    </div>
+
+    <script type="module">
+        import { auth, db } from '../js/config.js';
+        import { signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        import { Groq } from 'https://cdn.jsdelivr.net/npm/groq-sdk@0.3.0/+esm';
+
+        const GROQ_API_KEY = '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';
+        const groq = new Groq({
+            apiKey: GROQ_API_KEY,
+            dangerouslyAllowBrowser: true // Required for browser usage
+        });
+
+        // Check if user is logged in
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = '../index.html';
+            }
+        });
+
+        // Handle logout
+        document.getElementById('logoutButton').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '../index.html';
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
+        });
+
+        // Character counter
+        document.getElementById('feedback').addEventListener('input', (e) => {
+            document.getElementById('charCount').textContent = e.target.value.length;
+        });
+
+        async function analyzeWithGroq(feedbackText, rating) {
+            const prompt = `As a sentiment analysis expert, analyze this customer feedback with special attention to negative words and customer satisfaction indicators. Consider the emotional weight of words like "awful", "terrible", "bad", "poor", etc.
+
+Customer feedback: "${feedbackText}"
+Customer rating: ${rating}/5
+
+Analyze the text for:
+1. Overall sentiment (Must be "negative" if there are strong negative words like "awful", "terrible", "poor", "bad" or if rating is 1-2)
+2. Emotional intensity (0-1)
+3. Key complaint or praise points
+4. Customer satisfaction level
+5. Specific aspects mentioned (service, staff, product, etc.)
+
+Format your response EXACTLY as this JSON:
+{
+    "sentiment": "negative",
+    "confidence": 0.9,
+    "keyAspects": ["poor service", "rude staff"],
+    "emotionalTone": "frustrated and dissatisfied",
+    "mainPoints": ["Staff was unprofessional", "Service quality was poor"]
+}
+
+Remember:
+- If words like "awful", "terrible", "poor", "bad" are present, the sentiment MUST be "negative"
+- If rating is 1-2, the sentiment MUST be "negative"
+- If words like "excellent", "amazing", "great" are present, the sentiment MUST be "positive"
+- If rating is 4-5, the sentiment MUST be "positive"
+- Only use "neutral" when there's a clear mix of positive and negative, or no strong sentiment indicators`;
+
+            try {
+                console.log('Sending request to Groq API...');
+                const chatCompletion = await groq.chat.completions.create({
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are a sentiment analysis expert focused on customer feedback. Pay special attention to negative indicators and customer satisfaction levels. Always respond in the exact JSON format requested."
+                        },
+                        {
+                            role: "user",
+                            content: prompt
+                        }
+                    ],
+                    model: "llama-3.3-70b-versatile",
+                    temperature: 0.1,
+                    max_tokens: 1024
+                });
+
+                console.log('Groq API Response:', chatCompletion);
+
+                let analysisResult;
+                try {
+                    analysisResult = JSON.parse(chatCompletion.choices[0]?.message?.content || '{}');
+                } catch (parseError) {
+                    console.error('Error parsing Groq response:', parseError);
+                    // Fallback analysis with improved negative word detection
+                    const negativeWords = ['awful', 'terrible', 'bad', 'poor', 'worst', 'horrible', 'disappointed'];
+                    const hasNegativeWords = negativeWords.some(word => feedbackText.toLowerCase().includes(word));
+                    
+                    analysisResult = {
+                        sentiment: hasNegativeWords || rating <= 2 ? 'negative' : 
+                                 rating >= 4 ? 'positive' : 'neutral',
+                        confidence: 0.8,
+                        keyAspects: feedbackText.split(' ').slice(0, 3),
+                        emotionalTone: hasNegativeWords ? 'dissatisfied' : 
+                                     rating <= 2 ? 'unhappy' : 
+                                     rating >= 4 ? 'satisfied' : 'neutral',
+                        mainPoints: [feedbackText.substring(0, 100)]
+                    };
+                }
+
+                // Double-check sentiment based on negative words and rating
+                const negativeWords = ['awful', 'terrible', 'bad', 'poor', 'worst', 'horrible', 'disappointed'];
+                const hasNegativeWords = negativeWords.some(word => feedbackText.toLowerCase().includes(word));
+                
+                if (hasNegativeWords || rating <= 2) {
+                    analysisResult.sentiment = 'negative';
+                    analysisResult.confidence = Math.max(analysisResult.confidence, 0.9);
+                }
+
+                return analysisResult;
+            } catch (error) {
+                console.error('Error analyzing with Groq:', error);
+                // Fallback analysis with negative word detection
+                const negativeWords = ['awful', 'terrible', 'bad', 'poor', 'worst', 'horrible', 'disappointed'];
+                const hasNegativeWords = negativeWords.some(word => feedbackText.toLowerCase().includes(word));
+                
+                return {
+                    sentiment: hasNegativeWords || rating <= 2 ? 'negative' : 
+                             rating >= 4 ? 'positive' : 'neutral',
+                    confidence: 0.8,
+                    keyAspects: feedbackText.split(' ').slice(0, 3),
+                    emotionalTone: hasNegativeWords ? 'dissatisfied' : 
+                                 rating <= 2 ? 'unhappy' : 
+                                 rating >= 4 ? 'satisfied' : 'neutral',
+                    mainPoints: [feedbackText.substring(0, 100)]
+                };
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const feedbackText = document.getElementById('feedback').value;
+            const rating = document.querySelector('input[name="rating"]:checked').value;
+
+            try {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Processing...';
+
+                // Analyze feedback using Groq
+                const analysis = await analyzeWithGroq(feedbackText, parseInt(rating));
+                console.log('Analysis Result:', analysis);
+
+                // Convert sentiment to score with more weight on negative indicators
+                let sentimentScore;
+                switch(analysis.sentiment.toLowerCase()) {
+                    case 'positive':
+                        sentimentScore = 0.8 + (analysis.confidence * 0.2);
+                        break;
+                    case 'negative':
+                        sentimentScore = 0.2 - (analysis.confidence * 0.2);
+                        break;
+                    default:
+                        sentimentScore = 0.5;
+                }
+
+                // Give more weight to the rating for negative feedback
+                const ratingScore = rating / 5;
+                const finalScore = rating <= 2 ? 
+                    (sentimentScore * 0.3 + ratingScore * 0.7) : // More weight to rating for negative feedback
+                    (sentimentScore * 0.5 + ratingScore * 0.5);  // Equal weight for positive feedback
+
+                // Save to Firestore
+                await addDoc(collection(db, 'feedback'), {
+                    text: feedbackText,
+                    rating: parseInt(rating),
+                    sentiment: {
+                        score: finalScore,
+                        magnitude: analysis.confidence,
+                        category: analysis.sentiment,
+                        emotional_tone: analysis.emotionalTone
+                    },
+                    analysis: {
+                        key_aspects: analysis.keyAspects,
+                        main_points: analysis.mainPoints,
+                        raw_response: analysis
+                    },
+                    timestamp: new Date().toISOString(),
+                    userId: auth.currentUser.uid
+                });
+
+                // Show success message
+                e.target.reset();
+                document.getElementById('charCount').textContent = '0';
+                successMessage.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    successMessage.classList.add('hidden');
+                }, 3000);
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+                successMessage.classList.add('hidden');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Feedback';
+            }
+        });
+    </script>
+</body>
+</html> 

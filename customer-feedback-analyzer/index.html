@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Feedback Analyzer - Login</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-96">
+        <h1 class="text-2xl font-bold text-center mb-6">Customer Feedback Analyzer</h1>
+        <div id="loginForm">
+            <div class="mb-4">
+                <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                <input type="email" id="email" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500" value="test@example.com">
+            </div>
+            <div class="mb-6">
+                <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                <input type="password" id="password" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500" value="test123">
+            </div>
+            <button id="loginButton" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                Login
+            </button>
+            <p id="errorMessage" class="text-red-500 text-sm mt-2 text-center hidden"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth } from './js/config.js';
+        import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+
+        // Create test user function
+        async function createTestUser() {
+            try {
+                await createUserWithEmailAndPassword(auth, 'test@example.com', 'test123');
+                console.log('Test user created successfully');
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    console.log('Test user already exists');
+                } else {
+                    console.error('Error creating test user:', error);
+                }
+            }
+        }
+
+        // Create test user on page load
+        createTestUser();
+
+        // Add login handler
+        document.getElementById('loginButton').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                window.location.href = 'pages/feedback.html';
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html> 

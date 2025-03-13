@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Customer Feedback Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-xl font-bold">Customer Feedback Dashboard</h1>
+                <div class="flex space-x-4">
+                    <a href="feedback.html" class="text-gray-700 hover:text-blue-500">Submit Feedback</a>
+                    <button id="logoutButton" class="text-gray-700 hover:text-blue-500">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Overview Cards -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Overall Sentiment</h3>
+                <div class="text-3xl font-bold text-blue-600" id="overallSentiment">Loading...</div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Average Rating</h3>
+                <div class="text-3xl font-bold text-green-600" id="averageRating">Loading...</div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Total Reviews</h3>
+                <div class="text-3xl font-bold text-purple-600" id="totalReviews">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Sentiment Distribution</h3>
+                <canvas id="sentimentChart"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Rating Distribution</h3>
+                <canvas id="ratingChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Deep Analysis Section -->
+        <div class="mt-6">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Deep Analysis & Insights</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold mb-2">Key Findings</h4>
+                        <ul id="keyFindings" class="list-disc pl-5 space-y-2">
+                            <li>Loading...</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Improvement Suggestions</h4>
+                        <ul id="improvementSuggestions" class="list-disc pl-5 space-y-2">
+                            <li>Loading...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Feedback Section -->
+        <div class="mt-6">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Recent Feedback</h3>
+                <div id="recentFeedback" class="space-y-4">
+                    <!-- Feedback items will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from '../js/config.js';
+        import { signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { collection, query, orderBy, limit, onSnapshot, getDocs } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        // Check if user is logged in
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = '../index.html';
+            }
+        });
+
+        // Handle logout
+        document.getElementById('logoutButton').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '../index.html';
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
+        });
+
+        // Initialize charts
+        const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+        const ratingCtx = document.getElementById('ratingChart').getContext('2d');
+
+        const sentimentChart = new Chart(sentimentCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Positive', 'Neutral', 'Negative'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['#10B981', '#F59E0B', '#EF4444']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        const ratingChart = new Chart(ratingCtx, {
+            type: 'bar',
+            data: {
+                labels: ['1', '2', '3', '4', '5'],
+                datasets: [{
+                    label: 'Number of Reviews',
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: '#3B82F6'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Function to analyze feedback data
+        function analyzeFeedbackData(feedbackData) {
+            if (!feedbackData || feedbackData.length === 0) {
+                return {
+                    totalReviews: 0,
+                    sentimentCounts: { positive: 0, neutral: 0, negative: 0 },
+                    ratingCounts: [0, 0, 0, 0, 0],
+                    averageRating: 0,
+                    keyFindings: ['No feedback data available yet.'],
+                    improvementSuggestions: ['Submit some feedback to see improvement suggestions.']
+                };
+            }
+
+            const totalReviews = feedbackData.length;
+            const sentimentCounts = { positive: 0, neutral: 0, negative: 0 };
+            const ratingCounts = [0, 0, 0, 0, 0];
+            let totalRating = 0;
+            const keyAspects = new Map();
+            const emotionalTones = new Map();
+            const improvementAreas = new Set();
+
+            feedbackData.forEach(feedback => {
+                // Count sentiments
+                sentimentCounts[feedback.sentiment.category.toLowerCase()]++;
+                
+                // Count ratings
+                ratingCounts[feedback.rating - 1]++;
+                totalRating += feedback.rating;
+
+                // Analyze key aspects
+                if (feedback.analysis && feedback.analysis.key_aspects) {
+                    feedback.analysis.key_aspects.forEach(aspect => {
+                        keyAspects.set(aspect, (keyAspects.get(aspect) || 0) + 1);
+                    });
+                }
+
+                // Analyze emotional tones
+                if (feedback.sentiment && feedback.sentiment.emotional_tone) {
+                    emotionalTones.set(feedback.sentiment.emotional_tone, 
+                        (emotionalTones.get(feedback.sentiment.emotional_tone) || 0) + 1);
+                }
+
+                // Identify improvement areas
+                if (feedback.rating <= 3 || (feedback.sentiment && feedback.sentiment.category.toLowerCase() === 'negative')) {
+                    if (feedback.analysis && feedback.analysis.key_aspects) {
+                        feedback.analysis.key_aspects.forEach(aspect => {
+                            improvementAreas.add(aspect);
+                        });
+                    }
+                }
+            });
+
+            // Calculate average rating
+            const averageRating = totalRating / totalReviews;
+
+            // Generate insights
+            const keyFindings = generateKeyFindings(feedbackData, sentimentCounts, keyAspects, emotionalTones);
+            const improvementSuggestions = generateImprovementSuggestions(improvementAreas, keyAspects);
+
+            return {
+                totalReviews,
+                sentimentCounts,
+                ratingCounts,
+                averageRating,
+                keyFindings,
+                improvementSuggestions
+            };
+        }
+
+        // Function to generate key findings
+        function generateKeyFindings(feedbackData, sentimentCounts, keyAspects, emotionalTones) {
+            const findings = [];
+            
+            // Overall sentiment analysis
+            const dominantSentiment = Object.entries(sentimentCounts)
+                .reduce((a, b) => a[1] > b[1] ? a : b)[0];
+            findings.push(`Overall customer sentiment is ${dominantSentiment}, with ${(sentimentCounts[dominantSentiment] / feedbackData.length * 100).toFixed(1)}% of reviews.`);
+
+            // Key aspects analysis
+            const topAspects = Array.from(keyAspects.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+            if (topAspects.length > 0) {
+                findings.push(`Top mentioned aspects: ${topAspects.map(([aspect, count]) => `${aspect} (${count} mentions)`).join(', ')}.`);
+            }
+
+            // Emotional tone analysis
+            const topTones = Array.from(emotionalTones.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 2);
+            if (topTones.length > 0) {
+                findings.push(`Most common emotional tones: ${topTones.map(([tone, count]) => `${tone} (${count} reviews)`).join(', ')}.`);
+            }
+
+            return findings;
+        }
+
+        // Function to generate improvement suggestions
+        function generateImprovementSuggestions(improvementAreas, keyAspects) {
+            const suggestions = [];
+            
+            improvementAreas.forEach(area => {
+                const count = keyAspects.get(area) || 0;
+                if (count > 0) {
+                    suggestions.push(`Focus on improving ${area} as it's mentioned ${count} times in feedback.`);
+                }
+            });
+
+            // Add general suggestions based on improvement areas
+            if (improvementAreas.size > 0) {
+                suggestions.push('Consider implementing a customer feedback loop to address specific concerns.');
+                suggestions.push('Review and update service protocols based on common negative feedback points.');
+            }
+
+            return suggestions;
+        }
+
+        // Function to update dashboard
+        function updateDashboard(feedbackData) {
+            const analysis = analyzeFeedbackData(feedbackData);
+
+            // Update overview cards
+            document.getElementById('overallSentiment').textContent = 
+                Object.entries(analysis.sentimentCounts)
+                    .reduce((a, b) => a[1] > b[1] ? a : b)[0]
+                    .charAt(0).toUpperCase() + 
+                    Object.entries(analysis.sentimentCounts)
+                        .reduce((a, b) => a[1] > b[1] ? a : b)[0]
+                        .slice(1);
+            document.getElementById('averageRating').textContent = 
+                analysis.averageRating.toFixed(1) + '/5';
+            document.getElementById('totalReviews').textContent = analysis.totalReviews;
+
+            // Update charts
+            sentimentChart.data.datasets[0].data = [
+                analysis.sentimentCounts.positive,
+                analysis.sentimentCounts.neutral,
+                analysis.sentimentCounts.negative
+            ];
+            sentimentChart.update();
+
+            ratingChart.data.datasets[0].data = analysis.ratingCounts;
+            ratingChart.update();
+
+            // Update key findings
+            const keyFindingsList = document.getElementById('keyFindings');
+            keyFindingsList.innerHTML = analysis.keyFindings
+                .map(finding => `<li>${finding}</li>`)
+                .join('');
+
+            // Update improvement suggestions
+            const improvementSuggestionsList = document.getElementById('improvementSuggestions');
+            improvementSuggestionsList.innerHTML = analysis.improvementSuggestions
+                .map(suggestion => `<li>${suggestion}</li>`)
+                .join('');
+
+            // Update recent feedback
+            const recentFeedbackDiv = document.getElementById('recentFeedback');
+            if (feedbackData && feedbackData.length > 0) {
+                recentFeedbackDiv.innerHTML = feedbackData
+                    .slice(0, 5)
+                    .map(feedback => `
+                        <div class="border-b pb-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-800">${feedback.text}</p>
+                                    <div class="flex items-center mt-2">
+                                        <span class="text-yellow-500">${'★'.repeat(feedback.rating)}${'☆'.repeat(5-feedback.rating)}</span>
+                                        <span class="ml-2 text-sm text-gray-600">${new Date(feedback.timestamp).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                                <span class="px-2 py-1 rounded text-sm ${
+                                    feedback.sentiment.category.toLowerCase() === 'positive' ? 'bg-green-100 text-green-800' :
+                                    feedback.sentiment.category.toLowerCase() === 'negative' ? 'bg-red-100 text-red-800' :
+                                    'bg-yellow-100 text-yellow-800'
+                                }">
+                                    ${feedback.sentiment.category}
+                                </span>
+                            </div>
+                        </div>
+                    `)
+                    .join('');
+            } else {
+                recentFeedbackDiv.innerHTML = '<p class="text-gray-500">No feedback submitted yet.</p>';
+            }
+        }
+
+        // Listen for real-time updates
+        const q = query(collection(db, 'feedback'), orderBy('timestamp', 'desc'));
+        onSnapshot(q, (snapshot) => {
+            const feedbackData = [];
+            snapshot.forEach((doc) => {
+                feedbackData.push(doc.data());
+            });
+            updateDashboard(feedbackData);
+        });
+    </script>
+</body>
+</html> 
