@@ -3,40 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Feedback Analyzer - Login</title>
-    <!-- Tailwind CSS via CDN -->
+    <title>Beauty Insights - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'parchment': '#f6f2ea',
+                        'leather': '#c29b87',
+                        'oak': '#a97954',
+                        'manuscript': '#1e423f',
+                        'binding': '#532c2e',
+                        'crimson': '#34000b'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        .font-luxury { font-family: 'Playfair Display', serif; }
+        .font-body { font-family: 'Inter', sans-serif; }
+        .glass-effect {
+            background: rgba(246, 242, 234, 0.25);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(194, 155, 135, 0.18);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #f6f2ea 0%, #c29b87 50%, #a97954 100%);
+        }
+        .input-luxury {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .input-luxury:focus {
+            background: rgba(255, 255, 255, 1);
+            border-color: #c29b87;
+            box-shadow: 0 0 0 4px rgba(194, 155, 135, 0.1);
+        }
+        .btn-luxury {
+            background: linear-gradient(135deg, #a97954 0%, #532c2e 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-luxury:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(83, 44, 46, 0.3);
+        }
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .floating-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            animation: float 20s infinite linear;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100px) rotate(360deg); }
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="bg-white p-8 rounded-lg shadow-md w-96">
-        <h1 class="text-2xl font-bold text-center mb-6">Customer Feedback Analyzer</h1>
-        <div id="loginForm">
-            <div class="mb-4">
-                <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email</label>
-                <input type="email" id="email" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500" value="test@example.com">
+<body class="gradient-bg min-h-screen flex items-center justify-center font-body relative">
+    <!-- Floating Background Elements -->
+    <div class="floating-elements">
+        <div class="floating-circle w-32 h-32 bg-leather" style="left: 10%; animation-delay: -5s;"></div>
+        <div class="floating-circle w-24 h-24 bg-manuscript" style="left: 20%; animation-delay: -15s;"></div>
+        <div class="floating-circle w-40 h-40 bg-oak" style="left: 60%; animation-delay: -10s;"></div>
+        <div class="floating-circle w-20 h-20 bg-binding" style="left: 80%; animation-delay: -20s;"></div>
+    </div>
+
+    <div class="glass-effect p-12 rounded-3xl shadow-2xl w-full max-w-md mx-4 relative">
+        <!-- Logo/Brand Area -->
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-gradient-to-br from-leather to-oak rounded-full mx-auto mb-4 flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
             </div>
-            <div class="mb-6">
-                <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                <input type="password" id="password" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500" value="test123">
+            <h1 class="text-3xl font-luxury font-bold text-manuscript mb-2">Beauty Insights</h1>
+            <p class="text-binding/70 font-light">Elevate your beauty experience</p>
+        </div>
+
+        <form id="loginForm" class="space-y-6">
+            <div>
+                <label for="email" class="block text-manuscript font-medium mb-3 font-luxury">Email Address</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    class="input-luxury w-full px-4 py-4 rounded-2xl focus:outline-none font-body text-manuscript placeholder-binding/50"
+                    placeholder="Enter your email"
+                    value="test@example.com"
+                >
             </div>
-            <button id="loginButton" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors">
-                Login
+            
+            <div>
+                <label for="password" class="block text-manuscript font-medium mb-3 font-luxury">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    class="input-luxury w-full px-4 py-4 rounded-2xl focus:outline-none font-body text-manuscript placeholder-binding/50"
+                    placeholder="Enter your password"
+                    value="test123"
+                >
+            </div>
+
+            <button 
+                type="button"
+                id="loginButton"
+                class="btn-luxury w-full text-white py-4 rounded-2xl font-luxury font-semibold text-lg tracking-wide"
+            >
+                Sign In to Beauty Hub
             </button>
-            <p id="errorMessage" class="text-red-500 text-sm mt-2 text-center hidden"></p>
+        </form>
+
+        <div id="errorMessage" class="mt-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm hidden font-body"></div>
+
+        <!-- Decorative Elements -->
+        <div class="mt-8 text-center">
+            <div class="flex items-center justify-center space-x-2 text-binding/60">
+                <div class="w-8 h-px bg-leather/40"></div>
+                <span class="text-xs font-luxury">Luxury Beauty Analytics</span>
+                <div class="w-8 h-px bg-leather/40"></div>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { auth } from './js/config.js';
-        import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
         // Create test user function
         async function createTestUser() {
             try {
-                await createUserWithEmailAndPassword(auth, 'test@example.com', 'test123');
+                await auth.createUserWithEmailAndPassword('test@example.com', 'test123');
                 console.log('Test user created successfully');
             } catch (error) {
-                if (error.code === 'auth/email-already-in-use') {
+                if (error.message.includes('already exists')) {
                     console.log('Test user already exists');
                 } else {
                     console.error('Error creating test user:', error);
@@ -47,21 +155,54 @@
         // Create test user on page load
         createTestUser();
 
-        // Add login handler
+        // Add smooth loading animation
         document.getElementById('loginButton').addEventListener('click', async () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
+            const button = document.getElementById('loginButton');
+
+            // Loading state
+            button.innerHTML = `
+                <div class="flex items-center justify-center">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing In...
+                </div>
+            `;
+            button.disabled = true;
 
             try {
-                await signInWithEmailAndPassword(auth, email, password);
-                window.location.href = 'pages/feedback.html';
+                await auth.signInWithEmailAndPassword(email, password);
+                // Success animation
+                button.innerHTML = `
+                    <div class="flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Welcome Back!
+                    </div>
+                `;
+                setTimeout(() => {
+                    window.location.href = 'pages/feedback.html';
+                }, 1000);
             } catch (error) {
                 console.error('Login error:', error);
                 errorMessage.textContent = error.message;
                 errorMessage.classList.remove('hidden');
+                button.innerHTML = 'Sign In to Beauty Hub';
+                button.disabled = false;
+            }
+        });
+
+        // Check if user is already logged in
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                window.location.href = 'pages/feedback.html';
             }
         });
     </script>
 </body>
-</html> 
+</html>

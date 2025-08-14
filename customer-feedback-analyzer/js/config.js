@@ -1,48 +1,137 @@
-// Import Firebase SDK
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import { getFirestore, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { getAnalytics, isSupported } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js';
+// Local storage replacement for Firebase
+class LocalAuth {
+    constructor() {
+        this.currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+        this.authCallbacks = [];
+    }
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyCBzHK6AqZ7qb9Fvxc4pfkVbFs4-1Mps-o",
-    authDomain: "feedbackanalyzer-7faf0.firebaseapp.com",
-    projectId: "feedbackanalyzer-7faf0",
-    storageBucket: "feedbackanalyzer-7faf0.firebasestorage.app",
-    messagingSenderId: "584681672965",
-    appId: "1:584681672965:web:76875d16b932e112dc276c",
-    measurementId: "G-TN5K377CSW"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Initialize Firebase services
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Enable offline persistence
-enableIndexedDbPersistence(db)
-    .catch((err) => {
-        if (err.code === 'failed-precondition') {
-            // Multiple tabs open, persistence can only be enabled in one tab at a time.
-            console.log('Persistence failed: Multiple tabs open');
-        } else if (err.code === 'unimplemented') {
-            // The current browser doesn't support persistence
-            console.log('Persistence not available');
+    async signInWithEmailAndPassword(email, password) {
+        // Simple validation for demo
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const user = users.find(u => u.email === email && u.password === password);
+        
+        if (user || (email === 'test@example.com' && password === 'test123')) {
+            this.currentUser = { uid: 'user123', email: email };
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            this.notifyAuthStateChanged();
+            return this.currentUser;
+        } else {
+            throw new Error('Invalid email or password');
         }
-    });
+    }
 
-// Initialize Analytics conditionally
-let analytics = null;
-if (typeof window !== 'undefined') {
-    isSupported().then(yes => yes && (analytics = getAnalytics(app)));
+    async createUserWithEmailAndPassword(email, password) {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const existingUser = users.find(u => u.email === email);
+        
+        if (existingUser) {
+            throw new Error('User already exists');
+        }
+
+        const newUser = { email, password, uid: Date.now().toString() };
+        users.push(newUser);
+        localStorage.setItem('users', JSON.stringify(users));
+        
+        this.currentUser = { uid: newUser.uid, email: email };
+        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+        this.notifyAuthStateChanged();
+        return this.currentUser;
+    }
+
+    async signOut() {
+        this.currentUser = null;
+        localStorage.removeItem('currentUser');
+        this.notifyAuthStateChanged();
+    }
+
+    onAuthStateChanged(callback) {
+        this.authCallbacks.push(callback);
+        // Call immediately with current state
+        callback(this.currentUser);
+    }
+
+    notifyAuthStateChanged() {
+        this.authCallbacks.forEach(callback => callback(this.currentUser));
+    }
 }
 
-// Hugging Face API configuration
-const HUGGING_FACE_API_KEY = "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";
-const HUGGING_FACE_API_URL = "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english";
+class LocalFirestore {
+    collection(name) {
+        return new LocalCollection(name);
+    }
+}
 
-// Export instances for use in other files
-export { auth, db, analytics, HUGGING_FACE_API_KEY, HUGGING_FACE_API_URL }; 
+class LocalCollection {
+    constructor(name) {
+        this.name = name;
+    }
+
+    async addDoc(data) {
+        const docs = JSON.parse(localStorage.getItem(this.name) || '[]');
+        const newDoc = {
+            id: Date.now().toString(),
+            ...data,
+            createdAt: new Date().toISOString()
+        };
+        docs.push(newDoc);
+        localStorage.setItem(this.name, JSON.stringify(docs));
+        return { id: newDoc.id };
+    }
+
+    async getDocs() {
+        const docs = JSON.parse(localStorage.getItem(this.name) || '[]');
+        return {
+            docs: docs.map(doc => ({
+                id: doc.id,
+                data: () => doc
+            }))
+        };
+    }
+
+    onSnapshot(callback) {
+        // Simple polling for real-time updates
+        const checkForUpdates = () => {
+            const docs = JSON.parse(localStorage.getItem(this.name) || '[]');
+            const snapshot = {
+                docs: docs.map(doc => ({
+                    id: doc.id,
+                    data: () => doc
+                }))
+            };
+            callback(snapshot);
+        };
+
+        checkForUpdates();
+        // Check for updates every 5 seconds
+        const interval = setInterval(checkForUpdates, 5000);
+        
+        // Return unsubscribe function
+        return () => clearInterval(interval);
+    }
+}
+
+// Initialize local storage services
+const auth = new LocalAuth();
+const db = new LocalFirestore();
+
+// Helper functions to match Firebase API
+const collection = (db, name) => db.collection(name);
+const addDoc = (collectionRef, data) => collectionRef.addDoc(data);
+const getDocs = (collectionRef) => collectionRef.getDocs();
+const onSnapshot = (collectionRef, callback) => collectionRef.onSnapshot(callback);
+const query = (collectionRef) => collectionRef;
+const orderBy = () => ({});
+const limit = () => ({});
+
+// Export for compatibility
+export { 
+    auth, 
+    db, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    onSnapshot,
+    query,
+    orderBy,
+    limit
+};

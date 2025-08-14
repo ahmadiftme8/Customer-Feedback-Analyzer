@@ -1,5 +1,4 @@
 import { auth } from './config.js';
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "firebase/auth";
 
 // Handle login functionality
 async function login() {
@@ -8,9 +7,9 @@ async function login() {
     const errorMessage = document.getElementById('errorMessage');
 
     try {
-        // Try to create a test user first
+        // Try to create a test user first (if it doesn't exist)
         try {
-            await createUserWithEmailAndPassword(auth, 'test@example.com', 'test123');
+            await auth.createUserWithEmailAndPassword('test@example.com', 'test123');
             console.log('Test user created successfully');
         } catch (regError) {
             // User might already exist, which is fine
@@ -18,7 +17,7 @@ async function login() {
         }
 
         // Now try to sign in
-        await signInWithEmailAndPassword(auth, email, password);
+        await auth.signInWithEmailAndPassword(email, password);
         // Redirect to feedback page on successful login
         window.location.href = 'pages/feedback.html';
     } catch (error) {
@@ -28,7 +27,7 @@ async function login() {
 }
 
 // Check authentication state
-onAuthStateChanged(auth, (user) => {
+auth.onAuthStateChanged((user) => {
     // If user is already logged in and we're on the login page, redirect to feedback page
     if (user && window.location.pathname.endsWith('index.html')) {
         window.location.href = 'pages/feedback.html';
@@ -42,7 +41,7 @@ onAuthStateChanged(auth, (user) => {
 // Handle logout
 async function logout() {
     try {
-        await signOut(auth);
+        await auth.signOut();
         window.location.href = '../index.html';
     } catch (error) {
         console.error('Error signing out:', error);
@@ -51,4 +50,4 @@ async function logout() {
 
 // Export functions for use in HTML
 window.login = login;
-window.logout = logout; 
+window.logout = logout;

@@ -1,3 +1,6 @@
+/* D:\FrontEnd\Customer-Feedback-Analyzer\customer-feedback-analyzer\firebase.json */
+
+
 {
   "firestore": {
     "rules": "firestore.rules"

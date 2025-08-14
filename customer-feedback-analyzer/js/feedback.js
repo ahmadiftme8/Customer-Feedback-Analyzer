@@ -1,3 +1,7 @@
+
+//D:\FrontEnd\Customer-Feedback-Analyzer\customer-feedback-analyzer\js\feedback.js
+
+
 import { db, auth, HUGGING_FACE_API_KEY, HUGGING_FACE_API_URL } from './config.js';
 import { collection, addDoc } from "firebase/firestore";
 
