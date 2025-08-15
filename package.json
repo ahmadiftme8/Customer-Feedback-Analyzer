@@ -1,12 +1,11 @@
 {
   "name": "customer-feedback-analyzer",
   "version": "1.0.0",
-  "description": "A beginner-friendly web application that collects customer feedback, analyzes it using AI, and displays results on a dashboard.",
-  "main": "server.js",
+  "description": "A web application that collects customer feedback, analyzes it using AI, and displays results on a dashboard.",
+  "main": "index.html",
   "scripts": {
-    "build": "echo 'No build step required for static site'",
-    "start": "node server.js",
-    "dev": "node server.js"
+    "build": "echo 'Static site - no build needed'",
+    "start": "echo 'Static site deployed'"
   },
   "keywords": ["feedback", "analytics", "beauty", "ai", "dashboard"],
   "author": "",
@@ -14,8 +13,5 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2"
-  },
-  "engines": {
-    "node": ">=14.0.0"
   }
 }
