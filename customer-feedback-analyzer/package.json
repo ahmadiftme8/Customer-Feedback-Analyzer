@@ -1,20 +1,21 @@
-//D:\FrontEnd\Customer-Feedback-Analyzer\customer-feedback-analyzer\package.json
-
-
 {
   "name": "customer-feedback-analyzer",
   "version": "1.0.0",
-  "description": "A beginner-friendly web application that collects customer feedback, analyzes it using Google Cloud Natural Language API, and displays results on a dashboard.",
+  "description": "A beginner-friendly web application that collects customer feedback, analyzes it using AI, and displays results on a dashboard.",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "build": "echo 'No build step required for static site'",
+    "start": "node server.js",
+    "dev": "node server.js"
   },
-  "keywords": [],
+  "keywords": ["feedback", "analytics", "beauty", "ai", "dashboard"],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
