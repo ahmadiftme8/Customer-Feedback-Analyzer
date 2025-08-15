@@ -1,5 +1,4 @@
 
-//D:\FrontEnd\Customer-Feedback-Analyzer\customer-feedback-analyzer\js\dashboard.js
 
 
 // Initialize Firestore
